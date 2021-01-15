@@ -1,0 +1,304 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct elem
+{
+    int x;
+    struct elem *left;
+    struct elem *right;
+    struct elem *up;
+} el;
+
+typedef el *wel_Tree;
+
+void printTree(wel_Tree tree, int poz)
+{
+    int i;
+    if(tree != NULL)
+    {
+        printTree(tree->left, poz+1);
+        for(i=0; i<poz; i++)
+        {
+            printf("  ");
+        }
+        printf("%i\n", tree->x);
+        printTree(tree->right, poz+1);
+    }
+}
+
+void printTreeFinal(wel_Tree tree)
+{
+    printTree(tree, 0);
+    printf("\n");
+}
+
+void addRoot(wel_Tree *tree, int number)
+{
+    if(*tree == NULL)
+    {
+        *tree = malloc(sizeof(el));
+        (*tree)->left = (*tree)->right = NULL;
+        (*tree)->x = number;
+        (*tree)->up = NULL;
+    }
+}
+
+wel_Tree* addElement(wel_Tree *tree, int number)
+{
+    if(*tree == NULL)
+    {
+        addRoot(tree, number);
+    }
+
+    if((*tree)->x > number)
+    {
+        wel_Tree* childL = addElement(&((*tree)->left), number);
+        (*tree)->left = *childL;
+
+        (*childL)->up = *tree;
+    }
+    else if((*tree)->x < number)
+    {
+        wel_Tree* childR = addElement(&((*tree)->right), number);
+        (*tree)->right = *childR;
+
+        (*childR)->up = *tree;
+    }
+
+    return tree;
+}
+
+wel_Tree *findElement(wel_Tree* tree, int number)
+{
+    if(*tree != NULL)
+    {
+        if( (*tree)->x > number )
+            return findElement(&((*tree)->left), number);
+        else if ( (*tree)->x < number )
+            return findElement(&((*tree)->right), number);
+    }
+    return tree;
+}
+
+wel_Tree deleteElement(wel_Tree *tree, int number)
+{
+    wel_Tree tmp;
+
+    if(*tree == NULL)
+        return *tree;
+    if(*tree != NULL)
+    {
+        if(number < (*tree)->x)
+            (*tree)->left = deleteElement(&((*tree)->left), number);
+        else if(number > (*tree)->x)
+            (*tree)->right = deleteElement(&((*tree)->right), number);
+        else
+        {
+            //one child or none
+            if((*tree)->left == NULL)
+            {
+                tmp = (*tree)->right;
+                tmp->up = (*tree)->up;
+                free(*tree);
+                return tmp;
+            }
+            else if((*tree)->right == NULL)
+            {
+                tmp = (*tree)->left;
+                tmp->up = (*tree)->up;
+                free(*tree);
+                return tmp;
+            }
+            //two children
+            else
+            {
+                tmp = minValue(&((*tree)->right));
+                int val = tmp->x;
+                (*tree)->x = tmp->x;
+                (*tree)->right = deleteElement(&((*tree)->right), val);
+            }
+        }
+        return *tree;
+    }
+    else
+    {
+        printf("Nie ma takiego elementu!\n");
+        return *tree;
+    }
+}
+
+wel_Tree maxValue(wel_Tree *tree)
+{
+    wel_Tree tmp = *tree;
+    if(*tree != NULL)
+    {
+        while(tmp->right != NULL)
+            tmp = tmp->right;
+    }
+    return tmp;
+}
+
+wel_Tree minValue(wel_Tree *tree)
+{
+    wel_Tree tmp = *tree;
+    if(tmp != NULL)
+    {
+        while(tmp->left != NULL)
+            tmp = tmp->left;
+    }
+    return tmp;
+}
+
+wel_Tree nastepnik(wel_Tree *tree)
+{
+    wel_Tree next = NULL;
+    if(*tree != NULL)
+    {
+        if((*tree)->right != NULL)
+            return minValue(&((*tree)->right));
+
+        next = (*tree)->up;
+        while(next != NULL && *tree == next->right)
+        {
+            *tree = next;
+            next = next->up;
+        }
+        return next;
+    }
+}
+
+wel_Tree poprzednik(wel_Tree *tree)
+{
+    wel_Tree prev = NULL;
+
+    if(*tree != NULL)
+    {
+        if((*tree)->left != NULL)
+            return maxValue(&((*tree)->left));
+
+        prev = (*tree)->up;
+        while(prev != NULL && *tree == prev->left)
+        {
+            *tree = prev;
+            prev = prev->up;
+        }
+        return prev;
+    }
+}
+
+int isCorrect(wel_Tree *tree, wel_Tree *tree2)
+{
+    int correct = 0;
+    wel_Tree* found = findElement(tree2, (*tree)->x);
+
+    if(*found != NULL && (*tree)->x == (*found)->x)
+    {
+        correct = 1;
+        return correct;
+    }
+    return correct;
+}
+
+void orderTree(wel_Tree *tree, wel_Tree *tree2)
+{
+    int correct = 0;
+    if (*tree != NULL && *tree2 != NULL)
+    {
+        correct = isCorrect(tree, tree2);
+        if(correct == 1)
+        {
+            orderTree(&((*tree)->left), tree2);
+            orderTree(&((*tree)->right), tree2);
+        }
+        else
+            printf("Nie "); //dokonczy zdanie przy wywolaniu w main
+    }
+}
+
+int main()
+{
+    wel_Tree tree = NULL;
+    wel_Tree tree2 = NULL;
+    wel_Tree* found_addr = NULL;
+    wel_Tree result_adr = NULL;
+    int number;
+    int result = 0;
+
+    int option;
+    do
+    {
+        printf("Wybierz operacje:\n");
+        printf("1) - Dodaj element\n2) - Znajdz element\n");
+        printf("3) - Wypisz drzewo\n4) - Usun element\n");
+        printf("7) - Znajdz nastepnik\n8) - Znajdz poprzednik\n");
+        printf("9) - Dodaj element 2 drzewo\n10) - Porownaj drzewa\n");
+        printf("0) - zamknij program\n");
+        scanf("%i", &option);
+        switch(option)
+        {
+            case 0:
+                return 0;
+            case 1:
+                printf("Podaj element: ");
+                scanf("%i",&number);
+                addElement(&tree, number);
+                printTreeFinal(tree);
+                break;
+            case 2:
+                printf("Podaj element: ");
+                scanf("%i",&number);
+                found_addr = findElement(&tree, number);
+                printTreeFinal(tree);
+                break;
+            case 3:
+                printTreeFinal(tree);
+                break;
+            case 4:
+                printf("Podaj element ktory chcesz usunac: ");
+                scanf("%i",&number);
+                tree = deleteElement(&tree, number);
+                break;
+            case 7:
+                printf("Podaj element: ");
+                scanf("%i",&number);
+                found_addr = findElement(&tree, number);
+
+                result_adr = nastepnik(found_addr);
+                if(result_adr != NULL)
+                    printf("Nastepnik: %d\n", result_adr->x);
+                else
+                    printf("Nie posiada nastepnika!\n");
+
+                printTreeFinal(tree);
+                break;
+            case 8:
+                printf("Podaj element: ");
+                scanf("%i",&number);
+                found_addr = findElement(&tree, number);
+
+                result_adr = poprzednik(found_addr);
+                if(result_adr != NULL)
+                    printf("Poprzednik: %d\n", result_adr->x);
+                else
+                    printf("Nie posiada poprzednika!\n");
+
+                printTreeFinal(tree);
+                break;
+            case 9:
+                printf("Podaj element: ");
+                scanf("%i",&number);
+                addElement(&tree2, number);
+                printTreeFinal(tree2);
+                break;
+            case 10:
+                orderTree(&tree, &tree2);
+                printf("skladaja sie z takich samych wartosci\n");
+                printTreeFinal(tree);
+                break;
+            default:
+                printf("Zly numer!");
+                break;
+        }
+    } while(option != 0);
+    return 0;
+}
